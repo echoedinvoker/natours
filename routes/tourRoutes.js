@@ -13,6 +13,9 @@ router.route('/:id').get(getTour)
 
 router.use(protect)
 
+router.route('/tours-within/:distance/center/:latlng/unit/:unit')
+
+// /tours-within/400/center/0.14325,3.21345/unit/mi
 
 router.route('/monthly-plan/:year').get(
   restrictTo('admin', 'lead-guide', 'guide'),

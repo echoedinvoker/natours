@@ -1,3 +1,4 @@
+const AppError = require('../utils/appError')
 const Tour = require('./../models/tourModel')
 const catchAsync = require('./../utils/catchAsync')
 const { deleteDoc, updateDoc, createDoc, getOne, getAll } = require('./handlerFactory')
@@ -9,13 +10,33 @@ exports.aliasTopTours = function(req, res, next) {
   next()
 }
 
-
-
 exports.getTour = getOne(Tour, { path: "reviews" })
 exports.getAllTours = getAll(Tour)
 exports.createTour = createDoc(Tour)
 exports.updateTour = updateDoc(Tour)
 exports.deleteTour = deleteDoc(Tour)
+
+// /tours-within/:distance/center/:latlng/unit/:unit
+
+exports.getToursWithin = catchAsync(async (req, res, next) => {
+  const { distance, latlng, unit } = req.params
+  const [lat, lng] = latlng.split(',')
+
+  if (!lat || !lng) {
+    next(
+      new AppError(
+        'Please provide latitude and longtitude.',
+        400
+      )
+    )
+  }
+
+  console.log(distance, lat, lng, unit)
+
+  req.status(200).json({
+    status: 'success',
+  })
+})
 
 exports.getTourStats = catchAsync(async function(_, res) {
   const stats = await Tour.aggregate([
