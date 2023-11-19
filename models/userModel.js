@@ -6,6 +6,8 @@ const bcrypt = require('bcryptjs')
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
+    minLength: [3, 'At least three character.'],
+    maxLength: [50, 'No more than 15 character.'],
     required: [true, 'Please tell us your name'],
   },
   email: {
@@ -39,18 +41,40 @@ const userSchema = new mongoose.Schema({
   },
   passwordChangedAt: Date,
   passwordResetToken: String,
-  passwordResetExpires: Date
+  passwordResetExpires: Date,
+  active: {
+    type: Boolean,
+    default: true,
+    select: false
+  }
 })
 
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next()
 
   this.password = await bcrypt.hash(this.password, 12)
-
   this.passwordConfirm = undefined
 
   next()
 })
+
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password') || this.isNew) return next()
+
+  this.passwordChangedAt = Date.now() - 1000
+  next()
+})
+
+userSchema.pre(/^find/, async function(next) {
+  this.find({ active: { $ne: false }})
+  next()
+})
+
+userSchema.methods.updatePassword = async function(password, passwordConfirm) {
+  this.password = password
+  this.passwordConfirm = passwordConfirm
+  await this.save()
+}
 
 userSchema.methods.correctPassword = async (candidatePassword, userPassword) => {
   return await bcrypt.compare(candidatePassword, userPassword)

@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 const slugify = require('slugify')
 const validator = require('validator')
 
+
 const tourSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -15,7 +16,35 @@ const tourSchema = new mongoose.Schema({
       'Tour name must only contain characters and numbers'
     ]
   },
+  guides: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: 'User'
+    }
+  ],
   slug: String,
+  startLocation: {
+    type: {
+      type: String,
+      default: 'Point',
+      enum: ['Point']
+    },
+    coordinates: [Number],
+    address: String,
+    description: String
+  },
+  locations: [
+    {
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point']
+      },
+      coordinates: [Number],
+      address: String,
+      description: String
+    }
+  ],
   secret: {
     type: Boolean,
     default: false
@@ -54,6 +83,7 @@ const tourSchema = new mongoose.Schema({
     default: 4.5,
     min: [1, 'Rating must be above 1.0'],
     max: [5, 'Rating must be bellow 5.0'],
+    set: val => Math.round(val * 10) / 10
   },
   ratingQuantity: {
     type: Number,
@@ -84,10 +114,28 @@ const tourSchema = new mongoose.Schema({
   toObject: { virtuals: true },
 })
 
+tourSchema.index({ price: 1, ratingAverage: -1 })
+tourSchema.index({ slug: 1 })
+
 tourSchema.virtual('durationWeeks').get(function() { return this.duration / 7 })
+
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  foreignField: 'tour',
+  localField: '_id', 
+})
 
 tourSchema.pre('save', function(next) {
   this.slug = slugify(this.name, { lower: true })
+  next()
+})
+
+tourSchema.pre(/^find/, function(next) {
+  this.populate({
+    path: 'guides',
+    select: '-__v -passwordChangedAt'
+  })
+
   next()
 })
 
